@@ -57,10 +57,7 @@ static struct
       TokenType tok;
     } reservedWords[MAXRESERVED]
    = {{"if",IF},{"else",ELSE},{"while",WHILE},
-		 {"return",RETURN},{"int",INT},{"void",VOID},
-		 /* discarded */
-		 {"then",THEN},{"end",END},{"repeat",REPEAT},
-		 {"until",UNTIL},{"read",READ},{"write",WRITE}};
+		 {"return",RETURN},{"int",INT},{"void",VOID}};
 
 /* lookup an identifier to see if it is a reserved word */
 /* uses linear search */

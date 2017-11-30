@@ -1,5 +1,5 @@
 #
-# Makefile for TINY
+# Makefile for CMINUS
 # Gnu C Version
 # K. Louden 2/3/98
 #
@@ -10,15 +10,14 @@ CFLAGS =
 
 OBJS = main.o util.o scan.o parse.o symtab.o analyze.o code.o cgen.o
 
-OBJS_FLEX = main.o util.o lex.yy.o
+cminus: main.o util.o scan.o parse.o
+	$(CC) $(CFLAGS) main.o util.o scan.o parse.o -o cminus
 
-cminus_flex: $(OBJS_FLEX)
-	$(CC) $(CFLAGS) $(OBJS_FLEX) -o cminus_flex -lfl
+parse.c y.tab.h: yacc/cminus.y
+	yacc -d yacc/cminus.y
+	mv y.tab.c parse.c
 
-cminus: $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o cminus
-
-main.o: main.c globals.h util.h scan.h parse.h analyze.h cgen.h
+main.o: main.c globals.h util.h scan.h y.tab.h
 	$(CC) $(CFLAGS) -c main.c
 
 util.o: util.c util.h globals.h
@@ -42,19 +41,14 @@ code.o: code.c code.h globals.h
 cgen.o: cgen.c globals.h symtab.h code.h cgen.h
 	$(CC) $(CFLAGS) -c cgen.c
 
-lex.yy.o: cminus.l scan.h util.h globals.h
-	flex cminus.l
-	$(CC) $(CFLAGS) -c lex.yy.c -lfl
 
 clean:
 	-rm cminus
-	-rm cminus_flex
-	-rm tm
-	-rm $(OBJS)
-	-rm lex.yy.o
+	-rm main.o util.o scan.o parse.o
+	-rm y.tab.h parse.c
 
 tm: tm.c
 	$(CC) $(CFLAGS) tm.c -o tm
 
-all: cminus cminus_flex tm
+all: cminus tm
 

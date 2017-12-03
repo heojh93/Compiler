@@ -16,6 +16,9 @@ void buildSymtab(TreeNode *);
 /* Procedure typeCheck performs type checking 
  * by a postorder syntax tree traversal
  */
+void popAfterInsert(TreeNode *);
+void IOFunc(TreeNode **);
+
 void typeCheck(TreeNode *);
 
 #endif

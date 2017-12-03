@@ -95,14 +95,14 @@ TokenType getToken(void)
            state = INID;
          else if (c == '=')
            state = INEQ;
-				 else if (c == '!')
-					 state = INNE;
-				 else if (c == '/')
-					 state = INOVER;
-				 else if (c == '<')
-					 state = INLT;
-				 else if (c == '>')
-					 state = INGT;
+         else if (c == '!')
+           state = INNE;
+         else if (c == '/')
+		   state = INOVER;
+		 else if (c == '<')
+		   state = INLT;
+         else if (c == '>')
+		   state = INGT;
          else if ((c == ' ') || (c == '\t') || (c == '\n'))
            save = FALSE;
          else
@@ -130,21 +130,21 @@ TokenType getToken(void)
              case ';':
                currentToken = SEMI;
                break;
-						 case '{':
-							 currentToken = LCURLY;
-							 break;
-						 case '}':
-							 currentToken = RCURLY;
-							 break;
-						 case '[':
-							 currentToken = LBRACE;
-							 break;
-						 case ']':
-							 currentToken = RBRACE;
-							 break;
-						 case ',':
-							 currentToken = COMMA;
-							 break;
+			 case '{':
+			   currentToken = LCURLY;
+			   break;
+			 case '}':
+			   currentToken = RCURLY;
+               break;
+			 case '[':
+		       currentToken = LBRACE;
+			   break;
+			 case ']':
+			   currentToken = RBRACE;
+			   break;
+			 case ',':
+			   currentToken = COMMA;
+			   break;
              default:
                currentToken = ERROR;
                break;
@@ -152,64 +152,64 @@ TokenType getToken(void)
          }
          break;
 				
-			 case INEQ:
-				 state = DONE;
-				 if(c == '=') currentToken = EQ;
-				 else
-				 {
-					 save = FALSE;
-					 ungetNextChar();
-					 currentToken = ASSIGN;
-				 }
-				 break;
+	   case INEQ:
+	     state = DONE;
+		 if(c == '=') currentToken = EQ;
+		 else
+		 {
+             save = FALSE;
+			 ungetNextChar();
+			 currentToken = ASSIGN;
+		 }
+		 break;
 
-			 case INNE:
-				 state = DONE;
-				 if(c == '=') currentToken = NE;
-				 else
-				 {
-					 save = FALSE;
-					 ungetNextChar();
-					 currentToken = ERROR;
-				 }
-				 break;
+	   case INNE:
+		 state = DONE;
+		 if(c == '=') currentToken = NE;
+		 else
+		 {
+             save = FALSE;
+			 ungetNextChar();
+			 currentToken = ERROR;
+		 }
+		 break;
 
-			 case INOVER:
-				 save = FALSE;
-				 if (c == '*')
-				 { 
-					 tokenStringIndex--;
-					 state = INCOMMENT;
-				 }
-				 else
-				 { 
-					 ungetNextChar();
-					 state = DONE;
-					 currentToken = OVER;
-				 }
-				 break;
+	   case INOVER:
+		 save = FALSE;
+		 if (c == '*')
+		 {
+             tokenStringIndex--;
+			 state = INCOMMENT;
+		 }
+		 else
+		 { 
+             ungetNextChar();
+			 state = DONE;
+			 currentToken = OVER;
+		 }
+		 break;
 
-			 case INLT:
-				 state = DONE;
-				 if (c == '=') currentToken = LE;
-				 else
-				 {
-					 save = FALSE;
-					 ungetNextChar();
-					 currentToken = LT;
-				 }
-				 break;
+	   case INLT:
+         state = DONE;
+		 if (c == '=') currentToken = LE;
+		 else
+		 {
+			 save = FALSE;
+			 ungetNextChar();
+			 currentToken = LT;
+		 }
+		 break;
 
-			 case INGT:
-				 state = DONE;
-				 if (c == '=') currentToken = GE;
-				 else
-				 {
-					 save = FALSE;
-					 ungetNextChar();
-					 currentToken = GT;
-				 }
-				 break;
+	   case INGT:
+		 state = DONE;
+		 if (c == '=') currentToken = GE;
+		 else
+		 {
+			 save = FALSE;
+			 ungetNextChar();
+			 currentToken = GT;
+		 }
+		 break;
 				 
        case INCOMMENT:
          save = FALSE;

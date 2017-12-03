@@ -13,8 +13,7 @@
 #include <string.h>
 #include "symtab.h"
 
-/* SIZE is the size of the hash table */
-#define SIZE 211
+#include "globals.h"
 
 /* SHIFT is the power of two used as multiplier
    in hash function  */
@@ -31,49 +30,26 @@ static int hash ( char * key )
   return temp;
 }
 
-/* the list of line numbers of the source 
- * code in which a variable is referenced
- */
-typedef struct LineListRec
-   { int lineno;
-     struct LineListRec * next;
-   } * LineList;
-
-/* The record in the bucket lists for
- * each variable, including name, 
- * assigned memory location, and
- * the list of line numbers in which
- * it appears in the source code
- */
-typedef struct BucketListRec
-   { char * name;
-     LineList lines;
-     int memloc ; /* memory location for variable */
-     struct BucketListRec * next;
-   } * BucketList;
-
-/* the hash table */
-static BucketList hashTable[SIZE];
-
 /* Procedure st_insert inserts line numbers and
  * memory locations into the symbol table
  * loc = memory location is inserted only the
  * first time, otherwise ignored
  */
-void st_insert( char * name, int lineno, int loc )
+void st_insert(Scope *s, char * name, ExpType type, int lineno, int loc )
 { int h = hash(name);
-  BucketList l =  hashTable[h];
+  BucketList l =  s->hashTable[h];
   while ((l != NULL) && (strcmp(name,l->name) != 0))
     l = l->next;
   if (l == NULL) /* variable not yet in table */
   { l = (BucketList) malloc(sizeof(struct BucketListRec));
     l->name = name;
+    l->type = type;
     l->lines = (LineList) malloc(sizeof(struct LineListRec));
     l->lines->lineno = lineno;
     l->memloc = loc;
     l->lines->next = NULL;
-    l->next = hashTable[h];
-    hashTable[h] = l; }
+    l->next = s->hashTable[h];
+    s->hashTable[h] = l; }
   else /* found in table, so just add line number */
   { LineList t = l->lines;
     while (t->next != NULL) t = t->next;
@@ -86,37 +62,102 @@ void st_insert( char * name, int lineno, int loc )
 /* Function st_lookup returns the memory 
  * location of a variable or -1 if not found
  */
-int st_lookup ( char * name )
-{ int h = hash(name);
-  BucketList l =  hashTable[h];
+BucketList st_lookup ( Scope *scope, char * name )
+{
+    if(name == NULL) {
+        return NULL;
+    }
+  int h = hash(name);
+  BucketList l =  scope->hashTable[h];
   while ((l != NULL) && (strcmp(name,l->name) != 0))
     l = l->next;
-  if (l == NULL) return -1;
-  else return l->memloc;
+  if (l == NULL) return NULL;
+  else return l;
 }
 
 /* Procedure printSymTab prints a formatted 
  * listing of the symbol table contents 
  * to the listing file
  */
-void printSymTab(FILE * listing)
-{ int i;
-  fprintf(listing,"Variable Name  Location   Line Numbers\n");
-  fprintf(listing,"-------------  --------   ------------\n");
-  for (i=0;i<SIZE;++i)
-  { if (hashTable[i] != NULL)
-    { BucketList l = hashTable[i];
-      while (l != NULL)
-      { LineList t = l->lines;
-        fprintf(listing,"%-14s ",l->name);
-        fprintf(listing,"%-8d  ",l->memloc);
-        while (t != NULL)
-        { fprintf(listing,"%4d ",t->lineno);
-          t = t->next;
-        }
-        fprintf(listing,"\n");
-        l = l->next;
-      }
-    }
-  }
+void printSymTab(FILE * listing, Scope* scope)
+{ 
+    int i;
+
+    fprintf(listing,"   Name       Type      Location     Lines\n");
+    fprintf(listing,"----------  ----------  -------- ----------------\n");
+    
+    treeTraverse(scope);
+
 } /* printSymTab */
+
+void treeTraverse(Scope *scope){
+    int i;
+    Scope * s = malloc(sizeof(Scope));
+    s = scope->child;
+
+    for (i=0;i<SIZE;++i){ 
+        if (scope->hashTable[i] != NULL){ 
+            BucketList l = scope->hashTable[i];
+            while (l != NULL){ 
+                LineList t = l->lines;
+                fprintf(listing,"%-12s ",l->name);
+                fprintf(listing,"%-13s ",l->type==Integer? "Integer" : "Void");
+                fprintf(listing,"%-4d  ",l->memloc);
+                while (t != NULL){ 
+                    fprintf(listing,"%4d ",t->lineno);
+                    t = t->next;
+                }
+                fprintf(listing,"\n");
+                l = l->next;
+            }
+        }
+    }
+   
+    if(scope->child == NULL) return;
+    
+    else{                
+        while(s){
+            treeTraverse(s);
+            s = s->next;
+        }
+    }
+}
+
+Scope * new_scope(char * name, Scope * parent){
+    Scope *newSC = malloc(sizeof(Scope));
+    if(newSC){
+        newSC->name = name;
+        newSC->location = 0;
+        newSC->isVisited = 0;
+        memset(newSC->hashTable, 0, sizeof(newSC->hashTable));
+        newSC->child = NULL;
+        newSC->parent = parent;
+    }
+    return newSC;
+}
+
+Scope * add_sibling (Scope * s, char * name, Scope * parent){
+    if(s == NULL) return NULL;
+
+    while(s->next) s = s->next;
+    
+    return (s->next = new_scope(name, parent));
+}
+
+Scope * add_child (Scope * s, char * name){
+    if(s == NULL) return NULL;
+
+    if(s->child) 
+        return add_sibling(s->child, name, s);
+    else 
+        return (s->child = new_scope(name, s));
+}
+
+Scope * get_parent(Scope * s){
+    return s->parent;
+}
+
+void incr_location (Scope *s){
+    s->location += 1;
+}
+

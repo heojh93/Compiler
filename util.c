@@ -16,53 +16,49 @@
 void printToken( TokenType token, const char* tokenString )
 { switch (token)
   { case IF:
-		case ELSE:
-		case WHILE:
-		case RETURN:
-		case INT:
-		case VOID:
-		/*
+	case ELSE:
+	case WHILE:
+	case RETURN:
+	case INT:
+	case VOID:
+	/*
     case THEN:
     case END:
     case REPEAT:
     case UNTIL:
     case READ:
     case WRITE:
-		*/
-      fprintf(listing,
-         "reserved word: %s\n",tokenString);
-      break;
+	*/
+        fprintf(listing,"reserved word: %s\n",tokenString);
+        break;
     case ASSIGN: fprintf(listing,"=\n"); break;
     case EQ: fprintf(listing,"==\n"); break;
-		case NE: fprintf(listing,"!=\n"); break;
-		case LT: fprintf(listing,"<\n"); break;
-		case LE: fprintf(listing,"<=\n"); break;
-		case GT: fprintf(listing,">\n"); break;
-		case GE: fprintf(listing,">=\n"); break;
+	case NE: fprintf(listing,"!=\n"); break;
+	case LT: fprintf(listing,"<\n"); break;
+	case LE: fprintf(listing,"<=\n"); break;
+	case GT: fprintf(listing,">\n"); break;
+	case GE: fprintf(listing,">=\n"); break;
     case LPAREN: fprintf(listing,"(\n"); break;
     case RPAREN: fprintf(listing,")\n"); break;
-		case LBRACE: fprintf(listing,"[\n"); break;
-		case RBRACE: fprintf(listing,"]\n"); break;
-		case LCURLY: fprintf(listing,"{\n"); break;
-		case RCURLY: fprintf(listing,"}\n"); break;
+	case LBRACE: fprintf(listing,"[\n"); break;
+	case RBRACE: fprintf(listing,"]\n"); break;
+	case LCURLY: fprintf(listing,"{\n"); break;
+	case RCURLY: fprintf(listing,"}\n"); break;
     case SEMI: fprintf(listing,";\n"); break;
-		case COMMA:fprintf(listing,",\n"); break;
+	case COMMA:fprintf(listing,",\n"); break;
     case PLUS: fprintf(listing,"+\n"); break;
     case MINUS: fprintf(listing,"-\n"); break;
     case TIMES: fprintf(listing,"*\n"); break;
     case OVER: fprintf(listing,"/\n"); break;
     case ENDFILE: fprintf(listing,"EOF\n"); break;
     case NUM:
-      fprintf(listing,
-          "NUM, val= %s\n",tokenString);
+      fprintf(listing,"NUM, val= %s\n",tokenString);
       break;
     case ID:
-      fprintf(listing,
-          "ID, name= %s\n",tokenString);
+      fprintf(listing,"ID, name= %s\n",tokenString);
       break;
     case ERROR:
-      fprintf(listing,
-          "ERROR: %s\n",tokenString);
+      fprintf(listing,"ERROR: %s\n",tokenString);
       break;
     default: /* should never happen */
       fprintf(listing,"Unknown token: %d\n",token);
@@ -146,7 +142,7 @@ void printTree( TreeNode * tree )
   while (tree != NULL) {
     printSpaces();
 
-		char* type;
+	char* type;
     if(tree->type == Integer) type = copyString("Int");
     else if(tree->type == Void) type = copyString("Void");
 
@@ -154,10 +150,10 @@ void printTree( TreeNode * tree )
     { switch (tree->kind.stmt) {
         case IfK:
           fprintf(listing,"If (condition) (body)");
-					if(tree->attr.elseFlag) fprintf(listing," (else)");
-					fprintf(listing,"\n");
+          if(tree->attr.elseFlag) fprintf(listing," (else)");
+            fprintf(listing,"\n");
           break;
-				case FunctionK:
+		case FunctionK:
           fprintf(listing,"Function declaration, name : %s, return type : %s\n", tree->attr.name, type);
           break;
         case CompoundK:

@@ -9,9 +9,10 @@
 #include "globals.h"
 #include "symtab.h"
 #include "analyze.h"
+#include "util.h"
 
 /* counter for variable memory locations */
-static int location = 0;
+// static int location = 0;
 
 /* Procedure traverse is a generic recursive 
  * syntax tree traversal routine:
@@ -46,34 +47,62 @@ static void nullProc(TreeNode * t)
  * the symbol table 
  */
 static void insertNode( TreeNode * t)
-{ switch (t->nodekind)
+{ 
+  Scope *s = malloc(sizeof(Scope));
+  s = Cur_Scope;
+
+  switch (t->nodekind)
   { case StmtK:
       switch (t->kind.stmt)
-      { case AssignK:
-        case ReadK:
-          if (st_lookup(t->attr.name) == -1)
-          /* not yet in table, so treat as new definition */
-            st_insert(t->attr.name,t->lineno,location++);
-          else
-          /* already in table, so ignore location, 
-             add line number of use only */ 
-            st_insert(t->attr.name,t->lineno,0);
-          break;
+      { case FunctionK:
+            // Parent must be Global
+            if(s->parent != NULL){
+                fprintf(listing, "Can't Define Function in this Scope!\n");
+            }
+            // Insert into Sym Table
+            else if(!strcmp(t->attr.name, "input") || !strcmp(t->attr.name, "output")){
+                st_insert(Head_Scope, t->attr.name, t->type, t->lineno, Head_Scope->location++);
+            }
+            // Already Exist
+            else if (st_lookup(s, t->attr.name) != NULL){
+                fprintf(listing, "Function %s Already Exists!\n", t->attr.name);
+            }
+
+            else{
+                Cur_Scope = add_child(Cur_Scope, t->attr.name);
+                st_insert(Cur_Scope, t->attr.name, t->type, t->lineno, s->location++);
+            }
+            break;
         default:
-          break;
+            break;
       }
       break;
     case ExpK:
       switch (t->kind.exp)
-      { case IdK:
-          if (st_lookup(t->attr.name) == -1)
-          /* not yet in table, so treat as new definition */
-            st_insert(t->attr.name,t->lineno,location++);
-          else
-          /* already in table, so ignore location, 
-             add line number of use only */ 
-            st_insert(t->attr.name,t->lineno,0);
-          break;
+      { 
+        case VarArrK:
+        case VarK:
+        case SingleParamK:
+        case ArrParamK:
+        case IdK:
+            // Not Found
+            //printf("%s\n", t->attr.name);
+            if (t->attr.name != NULL &st_lookup(s, t->attr.name) == NULL) {
+                st_insert(s, t->attr.name, t->type, t->lineno, s->location++);
+            }
+            // Found 
+            else if(t->attr.name != NULL)
+                st_insert(s, t->attr.name, t->type, t->lineno, 0);
+
+            break;
+
+        case CallK:
+            printf("%s\n", t->attr.name);
+            if(st_lookup(Head_Scope, t->attr.name) == NULL)
+                fprintf(listing, "Undeclared Function\n");
+            else
+                st_insert(Head_Scope, t->attr.name, t->type, t->lineno, 0);
+            break;
         default:
           break;
       }
@@ -83,15 +112,57 @@ static void insertNode( TreeNode * t)
   }
 }
 
+
+void popAfterInsert(TreeNode * t){
+    if(t->nodekind == StmtK && t->kind.stmt == CompoundK){
+        Cur_Scope = get_parent(Cur_Scope);
+    }
+}
+
+void IOFunc(TreeNode ** t){
+    TreeNode *input;
+    TreeNode *output;
+    TreeNode *param;
+
+    input = newStmtNode(FunctionK);
+    input->attr.name = copyString("input");
+    input->type = Integer;
+    input->lineno = 0;
+    input->sibling = *t;
+    *t = input;
+
+    param = newStmtNode(ParamK);
+    param->attr.name = copyString("arg");
+    param->type = Integer;
+    param->lineno = 0;
+
+    output = newStmtNode(FunctionK);
+    output->attr.name = copyString("output");
+    output->type = Void;
+    output->lineno = 0;
+    output->child[0] = param;
+    output->sibling = *t;
+    *t = output;
+}
+
+
 /* Function buildSymtab constructs the symbol 
  * table by preorder traversal of the syntax tree
  */
 void buildSymtab(TreeNode * syntaxTree)
-{ traverse(syntaxTree,insertNode,nullProc);
-  if (TraceAnalyze)
-  { fprintf(listing,"\nSymbol table:\n\n");
-    printSymTab(listing);
-  }
+{
+    Head_Scope = new_scope("Global", NULL);
+  
+    IOFunc(&syntaxTree);
+
+    Cur_Scope = malloc(sizeof(Scope)); 
+    Cur_Scope = Head_Scope;
+    
+    traverse(syntaxTree,insertNode, popAfterInsert);
+    if (TraceAnalyze){ 
+        fprintf(listing,"\nSymbol table:\n\n");
+        printSymTab(listing, Head_Scope);
+    }
 }
 
 static void typeError(TreeNode * t, char * message)
@@ -103,44 +174,81 @@ static void typeError(TreeNode * t, char * message)
  * type checking at a single tree node
  */
 static void checkNode(TreeNode * t)
-{ switch (t->nodekind)
+{ 
+  Scope * s = Cur_Scope;
+  BucketList bucket;
+  ExpType type;
+  ExpKind e;
+
+  switch (t->nodekind)
   { case ExpK:
       switch (t->kind.exp)
-      { case OpK:
-          if ((t->child[0]->type != Integer) ||
-              (t->child[1]->type != Integer))
-            typeError(t,"Op applied to non-integer");
-          if ((t->attr.op == EQ) || (t->attr.op == LT))
-            t->type = Boolean;
-          else
-            t->type = Integer;
-          break;
+      { 
+        case OpK:
+            if ((t->child[0]->type != Integer) ||
+                (t->child[1]->type != Integer))
+                typeError(t,"Only Integer Operation Possible\n");
+            break;
         case ConstK:
+            t->type = Integer;
+            break;
+        case SingleParamK:
+        case ArrParamK:
         case IdK:
-          t->type = Integer;
-          break;
+            break;
+        case VarK:
+        case VarArrK:
+            if(t->type != Integer)
+                typeError(t, "Variable Must be Integer Type!\n");
+            break;
+        case AssignK:
+            e = t->child[1]->kind.exp;
+            if(e == IdK || e == CallK){
+                type = st_lookup(s, t->child[1]->attr.name)->type;
+            }
+            else if(e == VarK || e == VarArrK ){
+                type = t->child[1]->type;
+            }
+            else{
+                typeError(t, "r-value error!\n");
+            }
+            if(type != Integer){
+                typeError(t, "r-value type error!\n");
+            }
+
+            break;
         default:
           break;
       }
       break;
     case StmtK:
       switch (t->kind.stmt)
-      { case IfK:
-          if (t->child[0]->type == Integer)
-            typeError(t->child[0],"if test is not Boolean");
-          break;
-        case AssignK:
-          if (t->child[0]->type != Integer)
-            typeError(t->child[0],"assignment of non-integer value");
-          break;
-        case WriteK:
-          if (t->child[0]->type != Integer)
-            typeError(t->child[0],"write of non-integer value");
-          break;
-        case RepeatK:
-          if (t->child[1]->type == Integer)
-            typeError(t->child[1],"repeat test is not Boolean");
-          break;
+      { 
+        case IfK:
+        case WhileK:
+            break;
+        case FunctionK:
+            type = t->type;
+            if(!(type==Integer || type==Void)){
+                typeError(t, "Function type must be Integer or Void\n");
+            }
+            break;
+        case CompoundK:
+        case ParamK:
+            break;
+        
+        case ReturnK:
+            type = t->type;
+            bucket = st_lookup(s, s->name);
+            if(bucket == NULL){
+                typeError(t, "Function-Return Not matched\n");
+            }
+            else if((bucket->type == Integer && type != Integer) || 
+                    (bucket->type == Void && type == Integer)){
+                typeError(t, "Function-Return Type Not Matched\n");
+            }
+            break;
+
         default:
           break;
       }

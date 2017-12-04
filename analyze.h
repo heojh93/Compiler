@@ -19,6 +19,7 @@ void buildSymtab(TreeNode *);
 void popAfterInsert(TreeNode *);
 void IOFunc(TreeNode **);
 
+void pushBeforeCheck(TreeNode *);
 void typeCheck(TreeNode *);
 
 #endif

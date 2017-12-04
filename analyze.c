@@ -70,7 +70,7 @@ static void insertNode( TreeNode * t)
 
             else{
                 Cur_Scope = add_child(Cur_Scope, t->attr.name);
-                st_insert(Cur_Scope, t->attr.name, t->type, t->lineno, s->location++);
+                st_insert(s, t->attr.name, t->type, t->lineno, s->location++);
             }
             break;
         default:
@@ -84,20 +84,21 @@ static void insertNode( TreeNode * t)
         case VarK:
         case SingleParamK:
         case ArrParamK:
-        case IdK:
             // Not Found
             //printf("%s\n", t->attr.name);
-            if (t->attr.name != NULL &st_lookup(s, t->attr.name) == NULL) {
+            if (t->attr.name != NULL & st_lookup(s, t->attr.name) == NULL) {
                 st_insert(s, t->attr.name, t->type, t->lineno, s->location++);
             }
+            
+            break;
+        case IdK:
             // Found 
-            else if(t->attr.name != NULL)
+            if(t->attr.name != NULL & st_lookup(s, t->attr.name) != NULL)
                 st_insert(s, t->attr.name, t->type, t->lineno, 0);
 
             break;
 
         case CallK:
-            printf("%s\n", t->attr.name);
             if(st_lookup(Head_Scope, t->attr.name) == NULL)
                 fprintf(listing, "Undeclared Function\n");
             else
@@ -179,43 +180,61 @@ static void checkNode(TreeNode * t)
   BucketList bucket;
   ExpType type;
   ExpKind e;
+  ExpKind e2;
+ // printf("attr name : %s\n", t->attr.name);
 
   switch (t->nodekind)
   { case ExpK:
       switch (t->kind.exp)
       { 
         case OpK:
-            if ((t->child[0]->type != Integer) ||
-                (t->child[1]->type != Integer))
-                typeError(t,"Only Integer Operation Possible\n");
             break;
         case ConstK:
             t->type = Integer;
             break;
         case SingleParamK:
         case ArrParamK:
+            break;
         case IdK:
+            bucket = st_lookup(s, t->attr.name);
+            if(bucket == NULL){
+                typeError(t, "Not defined Variable");
+                fprintf(listing, "   --> %s ", t->attr.name);
+                fprintf(listing, "in [%s]\n", s->name);
+            }
+            else if(bucket->type != Integer){
+                typeError(t, "Variable Type must be Integer");
+                fprintf(listing, "   --> %s\n", t->attr.name);
+            }
             break;
         case VarK:
         case VarArrK:
-            if(t->type != Integer)
-                typeError(t, "Variable Must be Integer Type!\n");
+            if(t->type != Integer){
+                typeError(t, "Variable Must be Integer Type!");
+                fprintf(listing, "   --> %s\n", t->attr.name);
+            }
             break;
         case AssignK:
+
             e = t->child[1]->kind.exp;
-            if(e == IdK || e == CallK){
+            if(e == IdK){
                 type = st_lookup(s, t->child[1]->attr.name)->type;
+            }
+            else if(e == CallK){ 
+                type = st_lookup(Head_Scope, t->child[1]->attr.name)->type;
             }
             else if(e == VarK || e == VarArrK ){
                 type = t->child[1]->type;
             }
-            else{
-                typeError(t, "r-value error!\n");
+            else {
+                type = t->type;
             }
             if(type != Integer){
-                typeError(t, "r-value type error!\n");
+                typeError(t, "Type Error while Assign!\n");
             }
 
+            break;
+        case CallK:
             break;
         default:
           break;
@@ -225,6 +244,7 @@ static void checkNode(TreeNode * t)
       switch (t->kind.stmt)
       { 
         case IfK:
+            break;
         case WhileK:
             break;
         case FunctionK:
@@ -234,18 +254,31 @@ static void checkNode(TreeNode * t)
             }
             break;
         case CompoundK:
+            Cur_Scope = get_parent(Cur_Scope);
+            break;
         case ParamK:
             break;
         
         case ReturnK:
             type = t->type;
-            bucket = st_lookup(s, s->name);
-            if(bucket == NULL){
-                typeError(t, "Function-Return Not matched\n");
+            if(t->type == Void){
+                // return x;
+                if(t->child[0]){
+                    if(t->child[0]->type != type){
+                        typeError(t, "Funcion Type != Return Type\n");
+                    }
+                }
             }
-            else if((bucket->type == Integer && type != Integer) || 
-                    (bucket->type == Void && type == Integer)){
-                typeError(t, "Function-Return Type Not Matched\n");
+            else if(t->type == Integer){
+                // return x;
+                if(t->child[0]){
+                    if(t->child[0]->type != type){
+                        typeError(t, "Function Type != Return Type\n");
+                    }
+                }
+                else{
+                    typeError(t, "Must Return Integer Type!\n");
+                }
             }
             break;
 
@@ -259,9 +292,16 @@ static void checkNode(TreeNode * t)
   }
 }
 
+void pushBeforeCheck (TreeNode* t){
+    if(t->nodekind == StmtK && t->kind.stmt == FunctionK){
+        Cur_Scope = get_child(Cur_Scope, t->attr.name);
+    }
+}
+
+
 /* Procedure typeCheck performs type checking 
  * by a postorder syntax tree traversal
  */
 void typeCheck(TreeNode * syntaxTree)
-{ traverse(syntaxTree,nullProc,checkNode);
+{ traverse(syntaxTree, pushBeforeCheck, checkNode);
 }

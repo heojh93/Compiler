@@ -44,6 +44,7 @@ Scope * new_scope (char * name, Scope * parent);
 Scope * add_sibling (Scope * s, char * name, Scope * parent);
 Scope * add_child (Scope * s, char * name);
 Scope * get_parent (Scope * s);
+Scope * get_child (Scope * s, char * name);
 void incr_location (Scope * s);
 
 static Scope * Head_Scope;

@@ -242,7 +242,6 @@ return_stmt			: RETURN SEMI
 
 expression			: var ASSIGN expression
 						{ $$ = newExpNode(AssignK);
-    					  $$->type = Integer;
 						  $$->child[0] = $1;
 						  $$->child[1] = $3;
 						}
@@ -253,7 +252,6 @@ expression			: var ASSIGN expression
 var					: ID
 						{
 						    $$ = newExpNode(IdK);
-							$$->type = Integer;	
 												
 							saveNode node = popNode();
 							$$->attr.name = copyString(node.name);
@@ -262,7 +260,6 @@ var					: ID
 						}
 					| ID LBRACE expression RBRACE
 						{ $$ = newExpNode(IdK);
-						  $$->type = Integer;
 						  $$->child[0] = $3;
 											
 						  saveNode node = popNode();
@@ -273,7 +270,6 @@ var					: ID
 
 simple_expression	: additive_expression relop additive_expression
 						{ $$ = newExpNode(OpK);
-						  $$->type = Integer;
 						  $$->attr.op = $2;
 						  $$->child[0] = $1;
 						  $$->child[1] = $3;								
@@ -298,7 +294,6 @@ relop				: LE
 
 additive_expression	: additive_expression addop term
 						{ $$ = newExpNode(OpK);
-						  $$->type = Integer;
 						  $$->attr.op = $2;
 						  $$->child[0] = $1;
 					      $$->child[1] = $3;
@@ -315,7 +310,6 @@ addop				: PLUS
 
 term				: term mulop factor
 						{ $$ = newExpNode(OpK);
-						  $$->type = Integer;
 						  $$->attr.op = $2;
 						  $$->child[0] = $1;
 						  $$->child[1] = $3;

@@ -81,13 +81,7 @@ BucketList st_lookup ( Scope *scope, char * name )
  */
 void printSymTab(FILE * listing, Scope* scope)
 { 
-    int i;
-
-    fprintf(listing,"   Name       Type      Location     Lines\n");
-    fprintf(listing,"----------  ----------  -------- ----------------\n");
-    
     treeTraverse(scope);
-
 } /* printSymTab */
 
 void treeTraverse(Scope *scope){
@@ -95,6 +89,11 @@ void treeTraverse(Scope *scope){
     Scope * s = malloc(sizeof(Scope));
     s = scope->child;
 
+    
+    fprintf(listing," [Scope : %s]\n", scope->name);
+    fprintf(listing,"   Name       Type      Location     Lines\n");
+    fprintf(listing,"----------  ----------  -------- ----------------\n");
+    
     for (i=0;i<SIZE;++i){ 
         if (scope->hashTable[i] != NULL){ 
             BucketList l = scope->hashTable[i];
@@ -112,6 +111,8 @@ void treeTraverse(Scope *scope){
             }
         }
     }
+
+    fprintf(listing,"\n");
    
     if(scope->child == NULL) return;
     
@@ -155,6 +156,12 @@ Scope * add_child (Scope * s, char * name){
 
 Scope * get_parent(Scope * s){
     return s->parent;
+}
+
+Scope * get_child (Scope * s, char * name){
+    Scope *tmp = malloc(sizeof(Scope)); 
+    for(tmp = s->child; strcmp(tmp->name,name) != 0; tmp = tmp->next){}
+    return tmp;
 }
 
 void incr_location (Scope *s){
